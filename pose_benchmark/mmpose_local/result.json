@@ -1,0 +1,159 @@
+{
+  "images": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "id": 0,
+      "file_name": "\/ccn2a\/u\/yinzi\/babyview_20240507\/babyview_main_pose_val_set\/00220001_GX010011_03.11.2024-03.17.2024_03.06.2024-1:59pm.MP4.jpg"
+    },
+    {
+      "width": 1080,
+      "height": 1920,
+      "id": 1,
+      "file_name": "\/ccn2a\/u\/yinzi\/babyview_20240507\/babyview_main_pose_val_set\/00220001_GX020006_02.19.2024-02.25.2024_02.24.2024-NA.MP4.jpg"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "id": 2,
+      "file_name": "\/ccn2a\/u\/yinzi\/babyview_20240507\/babyview_main_pose_val_set\/00220001_GX020026__2024-04-30-17:38:42.MP4.jpg"
+    }
+  ],
+  "categories": [
+    {
+      "id": 0,
+      "name": "0-nose"
+    },
+    {
+      "id": 1,
+      "name": "1-neck"
+    },
+    {
+      "id": 2,
+      "name": "10-rightankle"
+    },
+    {
+      "id": 3,
+      "name": "11-lefthip"
+    },
+    {
+      "id": 4,
+      "name": "12-leftknee"
+    },
+    {
+      "id": 5,
+      "name": "13-leftankle"
+    },
+    {
+      "id": 6,
+      "name": "14-righeye"
+    },
+    {
+      "id": 7,
+      "name": "15-lefteye"
+    },
+    {
+      "id": 8,
+      "name": "16-rightear"
+    },
+    {
+      "id": 9,
+      "name": "17-leftear"
+    },
+    {
+      "id": 10,
+      "name": "2-rightshoulder"
+    },
+    {
+      "id": 11,
+      "name": "3-rightelbow"
+    },
+    {
+      "id": 12,
+      "name": "4-rightwrist"
+    },
+    {
+      "id": 13,
+      "name": "5-leftshoulder"
+    },
+    {
+      "id": 14,
+      "name": "6-leftelbow"
+    },
+    {
+      "id": 15,
+      "name": "7-leftwrist"
+    },
+    {
+      "id": 16,
+      "name": "8-righthip"
+    },
+    {
+      "id": 17,
+      "name": "9-rightknee"
+    },
+    {
+      "id": 18,
+      "name": "person-bbox"
+    },
+    {
+      "id": 19,
+      "name": "person-seg"
+    }
+  ],
+  "annotations": [
+    {
+      "id": 0,
+      "image_id": 0,
+      "category_id": 18,
+      "segmentation": [],
+      "bbox": [
+        1074.3423004379702,
+        565.7571918761362,
+        365.65769703657287,
+        410.9178358585859
+      ],
+      "ignore": 0,
+      "iscrowd": 0,
+      "area": 150255.26953130297
+    },
+    {
+      "id": 1,
+      "image_id": 1,
+      "category_id": 18,
+      "segmentation": [],
+      "bbox": [
+        106.82509060168331,
+        709.4440266138264,
+        350.4957552506026,
+        794.9460582647764
+      ],
+      "ignore": 0,
+      "iscrowd": 0,
+      "area": 278625.21907500236
+    },
+    {
+      "id": 2,
+      "image_id": 2,
+      "category_id": 18,
+      "segmentation": [],
+      "bbox": [
+        1070.4785894206582,
+        184.9874055415617,
+        606.6498740554136,
+        548.1612090680105
+      ],
+      "ignore": 0,
+      "iscrowd": 0,
+      "area": 332541.92844317184
+    }
+  ],
+  "info": {
+    "year": 2024,
+    "version": "1.0",
+    "description": "",
+    "contributor": "Label Studio",
+    "url": "",
+    "date_created": "2024-05-17 04:38:06.669362"
+  }
+}

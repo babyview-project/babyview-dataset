@@ -1,0 +1,12 @@
+<View>
+  <KeyPointLabels name="kp-1" toName="img-1">
+      
+  <Label value="0-nose" background="#D4380D"/><Label value="1-neck" background="#FFC069"/><Label value="2-rightshoulder" background="#AD8B00"/><Label value="3-rightelbow" background="#D3F261"/><Label value="4-rightwrist" background="#389E0D"/><Label value="5-leftshoulder" background="#5CDBD3"/><Label value="6-leftelbow" background="#096DD9"/><Label value="7-leftwrist" background="#ADC6FF"/><Label value="8-righthip" background="#9254DE"/><Label value="9-rightknee" background="#F759AB"/><Label value="10-rightankle" background="#FFA39E"/><Label value="11-lefthip" background="#D4380D"/><Label value="12-leftknee" background="#FFC069"/><Label value="13-leftankle" background="#AD8B00"/><Label value="14-righeye" background="#D3F261"/><Label value="15-lefteye" background="#389E0D"/><Label value="16-rightear" background="#5CDBD3"/><Label value="17-leftear" background="#096DD9"/></KeyPointLabels>
+  <PolygonLabels name="polygonlabel" toName="img-1">
+      <Label value="person-seg" background="#0DA39E"/>
+  </PolygonLabels>
+  <RectangleLabels name="label" toName="img-1">
+      <Label value="person-bbox" background="#DDA0EE"/>
+  </RectangleLabels>
+  <Image name="img-1" value="$img"/>
+</View>
