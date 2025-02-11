@@ -56,58 +56,66 @@ families_short = read_csv(file=('subids_deidentified.csv'))
 ongoing_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=754020357#gid=754020357',sheet='Ongoing_data_collection') %>%
   filter(Status=="Uploaded") %>%
   select(-Notes) %>% # causing join errors because incompatible types
-  select(subject_id, Upload_fname, Date, `Blackout Portions`, Duration) %>%
+  select(subject_id, video_id,  Upload_fname, Date, `Blackout Portions`, Duration) %>%
   rename(exclude = `Blackout Portions`) %>%
   left_join(families_short, by=c('subject_id')) %>%
   mutate(cohort = 'ongoing')  %>%
   mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  
   # Fix the date column, which is in a list for this sheet but not all
   filter(map_lgl(Date, ~ !is.null(.x)))  %>%
   mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
   mutate(date_tested = ymd(date_column))  %>%
-  select(-Date, -date_column)
+  select(-Date, -date_column) %>%
+  mutate(video_name = str_replace_all(video_name, "PM", "pm"),
+         video_name = str_replace_all(video_name, "AM", "am")) 
 
 ## Not missing video names
 # sum(is.na(ongoing_session_durations$Upload_fname))
+
+# Missing dates?
+sum(is.na(ongoing_session_durations$date_tested))
 ```
 
 
 ## Load bv main -- release 1 
 ```{r}
 # release 1
-release_1_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Main_Release_1_Corrected') %>%
+release_1_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Main_Release_1_Corrected_test') %>%
   filter(Vid_In_Storage_Bucket=="Y") %>% # filter to uploadeed vids
-  select(subject_id, Upload_fname, Date, `Blackout Portions`, Duration, `grace notes`) %>%
+  select(subject_id, video_id, old_name, Date, `Blackout Portions`, Duration, `grace notes`) %>%
   rename(exclude = `Blackout Portions`) %>% # tag when there was anything to be excluded
+  rename(changed = `grace notes`) %>%
   left_join(families_short, by=c('subject_id')) %>%
   mutate(cohort = 'release_1') %>%
-  mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  mutate(low_res = str_detect(old_name,'.LRV')) %>%
+  mutate(video_name = str_split_fixed(old_name, "\\.MP4|\\.LRV|\\.ZIP", n = 2)[, 1]) %>%
   # Fix the date column, which is in a list for this one
-  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
-  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
-  mutate(date_tested = ymd(date_column))  %>%
-  select(-Date, -date_column)
+  mutate(date_tested = mdy(Date)) %>%
+  mutate(Duration = as.numeric(Duration)) %>%
+  mutate(video_name = str_replace_all(video_name, "PM", "pm"),
+         video_name = str_replace_all(video_name, "AM", "am")) 
 
 ## Stil missing 1090 video names as of 10pm on 2/10/25
-sum(is.na(release_1_session_durations$Upload_fname))
+sum(is.na(release_1_session_durations$video_name))
+sum(is.na(release_1_session_durations$date_tested))
 
 ```
 
-## Ego-single child, release 1
+## Ego-single child, releases 1/2
 ```{r}
 # release 1
 luna_release_1_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Luna_V1_Corrected') %>%
   filter(Vid_In_Storage_Bucket=="Y") %>%
-  select(subject_id, Upload_fname, Date, `Blackout Portions`, Duration) %>%
+  select(subject_id, video_id, Upload_fname, Date, `Blackout Portions`, Duration) %>%
   rename(exclude = `Blackout Portions`) %>% # tag when there was anything to be excluded
   left_join(families_short, by=c('subject_id')) %>%
   mutate(cohort = 'ego_single') %>%
   mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
   # Fix the date column, which is in a list for this one
-  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
-  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
-  mutate(date_tested = ymd(date_column))   %>%
-  select(-Date, -date_column)
+  mutate(date_tested = mdy(Date))   %>%
+  mutate(Duration = as.numeric(Duration)) %>%  # weird in `test` sheet
+  select(-Date)
 
 ## Not missing luna names
 sum(is.na(luna_release_1_session_durations$Upload_fname))
@@ -118,18 +126,38 @@ sum(is.na(luna_release_1_session_durations$Upload_fname))
 # release 2 luna
 luna_release_2_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Luna_Round_2_Ongoing') %>%
   filter(Status=="Uploaded") %>%
-  select(subject_id, Upload_fname, Date, `Delete?`, Duration) %>%
+  select(subject_id, video_id, Upload_fname, Date, `Delete?`, Duration) %>%
   rename(exclude = `Delete?`) %>% # tag when there was anything to be excluded
   left_join(families_short, by=c('subject_id')) %>%
   mutate(cohort = 'ego_single') %>%
   mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
-  # Fix the date column, which is in a list for this one
+  # Fix the date column
   mutate(date_column = ymd(Date)) %>%
   mutate(date_tested = ymd(date_column))  %>%
   select(-Date, -date_column)
 
 sum(is.na(luna_release_2_session_durations$Upload_fname))
 
+
+```
+
+```{r}
+# all bing
+bing_sessions <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Bing') %>%
+  filter(Vid_In_Storage_Bucket=="Y") %>%
+  select(subject_id, video_id, Upload_fname, Date, `Blackout Portions`, Duration) %>%
+  rename(exclude = `Blackout Portions`) %>% # tag when there was anything to be excluded
+  left_join(families_short, by=c('subject_id')) %>%
+  mutate(cohort = 'bing') %>%
+  mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  # Fix the date column, which is in a list for this one
+  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
+  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
+  mutate(date_tested = ymd(date_column))   %>%
+  select(-Date, -date_column)
+
+## Not missing bing names
+sum(is.na(bing_sessions$Upload_fname))
 
 ```
 
@@ -140,9 +168,10 @@ all_sessions <- release_1_session_durations %>%
   full_join(ongoing_session_durations) %>%
   full_join(luna_release_1_session_durations) %>%
   full_join(luna_release_2_session_durations) %>%
+  full_join(bing_sessions) %>%
   # note actual birthdays are in a different date format, but this works here
   mutate(age_in_days_during_video = as.numeric(difftime(ymd(date_tested), ymd(birthdate), units='days'))) %>%
-  select(-birthdate) 
+  select(-birthdate)
 ```
 
 
@@ -154,9 +183,15 @@ to_join <- all_sessions %>%
 ```
 
 Here's the file list from Khais' pull on GCP, try to join
-```{R} 
+
+
+```{r}
 joined_release_2 <- read_csv(file = here::here('data/included_videos.csv'))   %>%
-  left_join(to_join, by=c('filename'))
+  mutate(filename = str_replace_all(filename, regex("n\\.a", ignore_case = TRUE), "NA")) %>%
+  mutate(filename = str_replace_all(filename, regex("\\bna\\b", ignore_case = TRUE), "NA")) %>%
+  mutate(filename = str_replace_all(filename, "PM", "pm"),
+         filename = str_replace_all(filename, "AM", "am")) %>%
+  left_join(to_join)
 ```
 
 ```{r}
@@ -164,13 +199,22 @@ merged <- joined_release_2 %>%
   filter(!is.na(subject_id)) 
 ```
 
+```{r}
+summary_by_cohort <- joined_release_2 %>%
+  filter(!is.na(subject_id))  %>%
+  group_by(cohort) %>%
+  summarize(num_files = length(unique(filename))) %>%
+  kable()
+```
+
+We have `r length(joined_release_2$filename)` and with `r length(unique(joined_release_2$filename))` unique filenames, which means there are a few accidental duplicates.  
 
 ```{r}
 no_merge <- joined_release_2 %>%
   filter(is.na(subject_id))  %>%
-  select(filename) 
+  select(filename)
 
-# write_csv(no_merge, file=here::here('data/no_merge_vids.csv'))
+write_csv(no_merge, file=here::here('data/no_merge_vids.csv'))
 ```
 
 How far did we get? We got `r length(unique(merged$filename))` videos out of the `r length(unique(joined_release_2$filename))` we were hoping to match. We are still missing information about `r  length(unique(no_merge$filename))` files. We are still missing filenames from release 1 for `r sum(is.na(release_1_session_durations$Upload_fname))` files.
@@ -194,12 +238,107 @@ None of the missing files are luna files.
 ```{R}
 to_delete_release2 <- joined_release_2 %>%
   filter(!is.na(exclude)) %>%
-  select(filename, subject_id, date_tested, Duration)
+  select(filename, subject_id, date_tested, Duration, cohort, exclude) %>%
+  group_by(cohort) 
 
 # these videos were recorded but then manually deleted and are not in the release or in the raw/storage buckets
 to_delete_from_spreadhseet <- all_sessions %>%
   filter(!is.na(exclude)) %>%
   anti_join(to_delete_release2 %>% rename(vid_name = filename))
 
-# write_csv(to_delete_release2, file=here::here('data/to_delete_blackout_vids.csv'))
+
+```
+
+
+```{r}
+blackout_first_round = read_csv(file=here::here('data/to_delete_blackout_vids.csv')) %>%
+  mutate(first_blackout = TRUE)
+```
+
+```{r}
+to_delete_release2 <- joined_release_2 %>%
+  filter(!is.na(exclude)) %>%
+  select(filename, subject_id, date_tested, Duration, cohort, exclude) %>%
+  left_join(blackout_first_round)
+  
+
+write_csv(to_delete_release2, file=here::here('data/to_delete_blackout_vids_post_match.csv'))
+```
+# Sample for whisper
+```{R}
+sampled_release_1 <- read_csv(file=here::here('data/to_sample_for_whisper_may2024.csv')) %>%
+  select(filename) %>%
+  mutate(filename = str_split_fixed(filename, '.MP4',2)[,1]) %>%
+  mutate(subject_id = str_split_fixed(filename, '_',4)[,1]) %>%
+  mutate(video_id = str_split_fixed(filename, '_',4)[,2]) %>%
+  rename(release_1_filename = filename) %>%
+  left_join(joined_release_2, by=c('subject_id','video_id'))
+```
+
+```{r}
+no_merge_whisper <- sampled_release_1 %>%
+  filter(is.na(filename))
+```
+
+# Whisper video sampling
+To sample videos for Whisper validation, we took a stratified sampling approach subsetted to monolingual, English speaking families, who comprised XX% of our dataset. For each subject, we then sampled videos that were 5 minutes or longer, and extracted a thirty-second clip from the middle of the video.
+```{r}
+release_1_whisper <- sampled_release_1 %>%
+  filter(!is.na(filename)) %>% # 19 couldn't match
+  filter(num_lang==1) %>%
+  group_by(subject_id) %>%
+  summarize(num_vids = length(unique(filename)))
+
+release_1_whisper_by_vid <- sampled_release_1 %>%
+  filter(!is.na(filename)) %>% # 19 couldn't match
+  filter(num_lang==1) 
+```
+
+```{R}
+ to_sample <- joined_release_2 %>%
+  filter(is.na(exclude)) %>%
+   filter(Duration>(3*60)) %>% # only videos 3 mins or longer
+  filter(cohort!="ego_single") %>% # not luna
+  filter(num_lang==1) %>% # monolingual
+  filter(!subject_id %in% release_1_whisper$subject_id) %>% # haven't sampled before
+   group_by(subject_id) %>%
+   arrange(age_in_days_during_video) %>%
+   mutate(vid_index = row_number()) %>%
+   filter(vid_index%%6==0) %>%
+   mutate(start_time = Duration/2) %>%
+   mutate(end_time = start_time + 30) %>%
+   arrange(subject_id, age_in_days_during_video)
+
+write_csv(to_sample, file=here::here('to_sample_for_whisper_release2.csv'))
+```
+
+
+```{R}
+# Summarize data to count unique filenames per subject and age bin
+plot_data <- release_1_whisper_by_vid %>%
+  group_by(subject_id, age_in_days_during_video) %>%
+  summarise(unique_filenames = n_distinct(filename), .groups = "drop")
+
+# Create the plot
+ggplot(plot_data, aes(x = age_in_days_during_video / 30.1, y = unique_filenames, col = subject_id)) +
+  geom_col() +  # Use geom_col() instead of geom_bar(stat="identity")
+  labs(x = "Age in Months", y = "Unique Filenames", title = "Unique Videos per Age") +
+  theme_minimal()
+
+```
+
+
+Then will need to sample these videos (from cluster) using python script in this folder.
+
+
+```{r}
+ # 
+ # not_sampled <- video_duration %>%
+ #   anti_join(to_sample) %>%
+ #   filter(age_during_video<30) %>%
+ #   filter(age_during_video>0)
+ # 
+ # vids_by_sub <- to_sample %>%
+ #   group_by(sub_id) %>%
+ #   summarize(num_vids = length(unique(full_paths)))
 ```
