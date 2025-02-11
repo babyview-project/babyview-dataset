@@ -196,18 +196,23 @@ joined_release_2 <- read_csv(file = here::here('data/included_videos.csv'))   %>
 
 ```{r}
 merged <- joined_release_2 %>%
-  filter(!is.na(subject_id)) 
+  filter(!is.na(subject_id))%>%
+  filter(is.na(exclude)) %>%
+  mutate(age_in_months = age_in_days_during_video/30.1) %>%
+  rename(duration = Duration) %>%
+  distinct(filename, subject_id, video_id, duration, num_lang, cohort, video_name, filename, age_in_months, date_tested)
+```
+```{r}
+write_csv(merged, file=here::here('data/merged_data_descriptives.csv'))
 ```
 
 ```{r}
-summary_by_cohort <- joined_release_2 %>%
+summary_by_cohort <- merged %>%
   filter(!is.na(subject_id))  %>%
   group_by(cohort) %>%
   summarize(num_files = length(unique(filename))) %>%
   kable()
 ```
-
-We have `r length(joined_release_2$filename)` and with `r length(unique(joined_release_2$filename))` unique filenames, which means there are a few accidental duplicates.  
 
 ```{r}
 no_merge <- joined_release_2 %>%
@@ -217,22 +222,14 @@ no_merge <- joined_release_2 %>%
 write_csv(no_merge, file=here::here('data/no_merge_vids.csv'))
 ```
 
-How far did we get? We got `r length(unique(merged$filename))` videos out of the `r length(unique(joined_release_2$filename))` we were hoping to match. We are still missing information about `r  length(unique(no_merge$filename))` files. We are still missing filenames from release 1 for `r sum(is.na(release_1_session_durations$Upload_fname))` files.
+We have `r length(unique(merged$filename))` matched videos out of the `r length(unique(joined_release_2$filename))` that were in the pull of the dataset. We are still missing information about `r  length(unique(no_merge$filename))` files,  we excluded `r sum(!is.na(joined_release_2$exclude))` videos that had sensitive information. We had `r length(joined_release_2$filename)` files and with `r length(unique(joined_release_2$filename))` unique filenames, which means there were a few accidental duplicate videos.  
 
-
-```{r}
-ego_single_child <- joined_release_2 %>%
-  # filter(is.na(subject_id)) %>%
-  mutate(luna = str_detect(filename, 'LUNA')) %>%
-  filter(luna == TRUE)
-
-ego_single_child_no_merge <- joined_release_2 %>%
-  filter(is.na(subject_id)) %>%
-  mutate(luna = str_detect(filename, 'LUNA')) %>%
-  filter(luna == TRUE)
+## Save
+```{R}
+write_csv(merged, file=here::here('data/merged_dataset_with_descriptives.csv'))
 ```
 
-None of the missing files are luna files.
+
 
 ## Make a list of the files we need to make sure not to include
 ```{R}
@@ -247,24 +244,22 @@ to_delete_from_spreadhseet <- all_sessions %>%
   anti_join(to_delete_release2 %>% rename(vid_name = filename))
 
 
-```
-
-
-```{r}
+# these were given to the team before merging was done,
 blackout_first_round = read_csv(file=here::here('data/to_delete_blackout_vids.csv')) %>%
   mutate(first_blackout = TRUE)
-```
 
-```{r}
+# here are all the files that need to be deleted
 to_delete_release2 <- joined_release_2 %>%
   filter(!is.na(exclude)) %>%
   select(filename, subject_id, date_tested, Duration, cohort, exclude) %>%
   left_join(blackout_first_round)
   
-
 write_csv(to_delete_release2, file=here::here('data/to_delete_blackout_vids_post_match.csv'))
 ```
-# Sample for whisper
+
+# Subsample videos for whisper transcripts 
+
+Get the videos that we manually annotated, do some annoying joining because the video names have changed
 ```{R}
 sampled_release_1 <- read_csv(file=here::here('data/to_sample_for_whisper_may2024.csv')) %>%
   select(filename) %>%
@@ -275,13 +270,14 @@ sampled_release_1 <- read_csv(file=here::here('data/to_sample_for_whisper_may202
   left_join(joined_release_2, by=c('subject_id','video_id'))
 ```
 
+There are 19 videos that we can't match, but that's not too bad in the scheme of things.
 ```{r}
 no_merge_whisper <- sampled_release_1 %>%
   filter(is.na(filename))
 ```
 
 # Whisper video sampling
-To sample videos for Whisper validation, we took a stratified sampling approach subsetted to monolingual, English speaking families, who comprised XX% of our dataset. For each subject, we then sampled videos that were 5 minutes or longer, and extracted a thirty-second clip from the middle of the video.
+To sample videos for Whisper validation, we took a stratified sampling approach subsetted to monolingual, English speaking families. For each subject, we then sampled videos that were 5 minutes or longer, and extracted a thirty-second clip from the middle of the video.
 ```{r}
 release_1_whisper <- sampled_release_1 %>%
   filter(!is.na(filename)) %>% # 19 couldn't match
@@ -294,6 +290,22 @@ release_1_whisper_by_vid <- sampled_release_1 %>%
   filter(num_lang==1) 
 ```
 
+
+```{R}
+# Summarize data to count unique filenames per subject and age bin
+plot_data <- release_1_whisper_by_vid %>%
+  group_by(subject_id, age_in_days_during_video) %>%
+  summarise(unique_filenames = n_distinct(filename), .groups = "drop")
+
+# Create the plot
+ggplot(plot_data, aes(x = age_in_days_during_video / 30.1, y = unique_filenames, col = subject_id)) +
+  geom_col() +  # Use geom_col() instead of geom_bar(stat="identity")
+  labs(x = "Age in Months", y = "Unique Filenames", title = "Unique Videos per Age") +
+  theme_minimal()
+```
+
+## Get videos to annotate
+And then save out the csv
 ```{R}
  to_sample <- joined_release_2 %>%
   filter(is.na(exclude)) %>%
@@ -309,36 +321,9 @@ release_1_whisper_by_vid <- sampled_release_1 %>%
    mutate(end_time = start_time + 30) %>%
    arrange(subject_id, age_in_days_during_video)
 
-write_csv(to_sample, file=here::here('to_sample_for_whisper_release2.csv'))
+write_csv(to_sample, file=here::here('data/to_sample_for_whisper_release2.csv'))
 ```
 
 
-```{R}
-# Summarize data to count unique filenames per subject and age bin
-plot_data <- release_1_whisper_by_vid %>%
-  group_by(subject_id, age_in_days_during_video) %>%
-  summarise(unique_filenames = n_distinct(filename), .groups = "drop")
-
-# Create the plot
-ggplot(plot_data, aes(x = age_in_days_during_video / 30.1, y = unique_filenames, col = subject_id)) +
-  geom_col() +  # Use geom_col() instead of geom_bar(stat="identity")
-  labs(x = "Age in Months", y = "Unique Filenames", title = "Unique Videos per Age") +
-  theme_minimal()
-
-```
 
 
-Then will need to sample these videos (from cluster) using python script in this folder.
-
-
-```{r}
- # 
- # not_sampled <- video_duration %>%
- #   anti_join(to_sample) %>%
- #   filter(age_during_video<30) %>%
- #   filter(age_during_video>0)
- # 
- # vids_by_sub <- to_sample %>%
- #   group_by(sub_id) %>%
- #   summarize(num_vids = length(unique(full_paths)))
-```
