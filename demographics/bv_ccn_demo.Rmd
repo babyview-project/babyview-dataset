@@ -23,7 +23,7 @@ options(scipen=999)
 ```{r}
 
 demographics <- readRDS("bv_ccn_demographics.rds")
-full_demographics <- read.csv("bv_ccn_demo.csv") %>% mutate(onboard_age=as.numeric(difftime(as.Date(date_test, "%m/%d/%Y"),as.Date(date_birth, "%m/%d/%Y"),"days")/365.25))
+full_demographics <- read.csv("bv_ccn_demo.csv")
 
 min_age <- min(full_demographics$onboard_age) 
 max_age <- max(full_demographics$onboard_age)
