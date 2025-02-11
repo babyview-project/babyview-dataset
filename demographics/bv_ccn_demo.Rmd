@@ -1,0 +1,69 @@
+---
+title: "bv_ccn_demo"
+output:
+  html_document: default
+  pdf_document: default
+date: "2025-02-11"
+---
+
+```{r}
+rm(list=ls())
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(magrittr)
+library(forcats)
+library(dplyr)
+
+```
+```{r global_options, include=FALSE}
+options(scipen=999)
+```
+
+```{r}
+
+demographics <- readRDS("bv_ccn_demographics.rds")
+full_demographics <- read.csv("bv_ccn_demo.csv") %>% mutate(onboard_age=as.numeric(difftime(as.Date(date_test, "%m/%d/%Y"),as.Date(date_birth, "%m/%d/%Y"),"days")/365.25))
+
+min_age <- min(full_demographics$onboard_age) 
+max_age <- max(full_demographics$onboard_age)
+avg_age <- mean(full_demographics$onboard_age)*12
+sd_age <- sd(full_demographics$onboard_age)
+
+n <- demographics$n
+male <- demographics$n_boy/demographics$n*100
+female <- demographics$n_girl/demographics$n*100
+black <- demographics$n_black/demographics$n*100
+asian_pi <- (demographics$n_asian + demographics$n_pacific)/demographics$n*100
+white <- demographics$n_white/demographics$n*100
+hispanic <- demographics$n_hispanic/demographics$n*100
+mixed <- demographics$n_mixed/demographics$n*100
+other <- demographics$n_other/demographics$n*100
+grad <- full_demographics %>% filter(parent_ed == 6) %>% nrow()
+multi_lang <- full_demographics %>% filter(num_lang > 1) %>% nrow()
+ca <- full_demographics %>% filter(geo == "CA") %>% nrow()
+ne <- full_demographics %>% filter(geo == "NE") %>% nrow()
+st <- full_demographics %>% filter(geo == "ST") %>% nrow()
+mw <- full_demographics %>% filter(geo == "MW") %>% nrow()
+cd <- full_demographics %>% filter(geo == "CD") %>% nrow()
+sk <- full_demographics %>% filter(geo == "SK") %>% nrow()
+income_info <- full_demographics %>% filter(!is.na(income))
+min_income <- min(income_info$income)
+max_income <- max(income_info$income)
+avg_income <- mean(income_info$income)
+sd_income <- sd(income_info$income)
+multi_child <- full_demographics %>% filter(house_children > 1) %>% nrow()
+single_parent <- full_demographics %>% filter(house_adults == 1) %>% nrow()
+multi_caregiver <- full_demographics %>% filter(house_adults > 2) %>% nrow()
+
+```
+
+Thirty-nine families consented to capture home recordings with their infant-toddler (0;5-3;1 years, average age at onboarding = `r avg_age %>% round()` months, SD = `r sd_age %>% round(2)` years, see `Figure~\hyperref[fig:scaling-exp]{1c})`. Families were recruited from a convenience sample of researchers in the field of cognitive development (N=9/39 families) and from local advertisements within the State of California. Some English-speaking and English/Spanish bilingual families (N=19/39) completed parent-report measures of children's language development using the long-forms of the MacArthur-Bates Communicative Development Inventories `\citep{marchman2023, jacksonmaldonado2003}`. See SI for further information on participant consent, detailed demographics, and language questionnaires. 
+
+
+Our sample is highly educated, with `r grad`/`r n` families having at least one parent with a graduate degree, and with all but one family having at least one parent with a 4-year college degree. `r multi_lang`/`r n` children are exposed to more than one language at home, including the following languages: English, Chinese, Farsi, French, Gujarati, Japanese, Korean, Malayalam, Portuguese, Spanish, Tagalog, Thai, Vietnamese. Geographically, `r ca`/`r n` of families live within California, `r ne`/`r n` live in the Northeastern United States, `r st`/`r n` live in the Southern United States, `r mw`/`r n` live in the Midwestern United States, `r cd`/`r n` live in Canada, and `r sk`/`r n` live in South Korea.
+
+Participating children were `r female %>% round(2)`\% female, `r male %>% round(2)`\% male, `r black %>% round(2)`\% African American/Black, `r asian_pi %>% round(2)`\% Asian American/Pacific Islander, `r white %>% round(2)`\% Caucasian/White, `r hispanic %>% round(2)`\% Hispanic/Latinx, `r mixed %>% round(2)`\% multiracial, `r other %>% round(2)`\% other.
+
+We only have income information for `r income_info %>% nrow()`/`r n` families, as reporting was optional. The average family income of our sample is `r avg_income %>% round(2)` USD (`r min_income`--`r max_income` USD, SD = `r sd_income %>% round(2)` USD). `r multi_child`/`r n` families have more than one child in the household, `r single_parent`/`r n` families live in a single-parent household, and `r multi_caregiver`/`r n` families have more than 2 caregivers living in the household. 
+
