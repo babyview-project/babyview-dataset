@@ -1,0 +1,205 @@
+---
+title: "Join metadata with GCP files"
+author: "Bria Long"
+date: "2024-10-25"
+output: html_document
+---
+
+# Setup
+```{r}
+library(tidyverse)
+library(here)
+library(googlesheets4)
+library(lubridate)
+library(ggthemes)
+library(knitr)
+```
+
+# Load family demographics
+IDENTIFIABLE (!) with birthdate if you get it from the source; that bit is commented out now.
+
+Here we are using a deidentified version to check rough ages
+```{r}
+# families = read_csv(file=here::here('data/demographics/demographics_2025.csv')) %>%
+  # as_tibble() %>%
+  # filter(study_name == 'BabyView') %>% # no pilots
+  # select(sid, date_birth, ethnicity, gender, num_lang, parent_ed) %>%
+  # rename(birthdate = date_birth) %>%
+  # rename(subject_id = sid) %>%
+  # filter(!is.na(subject_id))
+
+# We collected data from `r length(unique(families$subject_id))`. 
+# In our sample, `r sum(families$num_lang>1)` children are exposed to more than one language.
+
+# families_short <- families %>%
+  # select(subject_id, birthdate, num_lang)
+
+```
+
+```{r}
+# families_deidentified <- families %>%
+  # select(subject_id, birthdate, num_lang) %>%
+  # mutate(birthdate = mdy(birthdate)) %>%
+  # mutate(birthdate = round_date(birthdate, unit="month")) 
+
+# write_csv(families_deidentified, file=here::here('data/release_2.0/subids_deidentified.csv'))
+```
+
+Load in deidentified info
+```{r}
+families_short = read_csv(file=('subids_deidentified.csv'))  
+```
+
+## Load bv main -- ongoing 
+```{R}
+# ongoing data collection
+ongoing_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=754020357#gid=754020357',sheet='Ongoing_data_collection') %>%
+  filter(Status=="Uploaded") %>%
+  select(-Notes) %>% # causing join errors because incompatible types
+  select(subject_id, Upload_fname, Date, `Blackout Portions`, Duration) %>%
+  rename(exclude = `Blackout Portions`) %>%
+  left_join(families_short, by=c('subject_id')) %>%
+  mutate(cohort = 'ongoing')  %>%
+  mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  # Fix the date column, which is in a list for this sheet but not all
+  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
+  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
+  mutate(date_tested = ymd(date_column))  %>%
+  select(-Date, -date_column)
+
+## Not missing video names
+# sum(is.na(ongoing_session_durations$Upload_fname))
+```
+
+
+## Load bv main -- release 1 
+```{r}
+# release 1
+release_1_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Main_Release_1_Corrected') %>%
+  filter(Vid_In_Storage_Bucket=="Y") %>% # filter to uploadeed vids
+  select(subject_id, Upload_fname, Date, `Blackout Portions`, Duration, `grace notes`) %>%
+  rename(exclude = `Blackout Portions`) %>% # tag when there was anything to be excluded
+  left_join(families_short, by=c('subject_id')) %>%
+  mutate(cohort = 'release_1') %>%
+  mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  # Fix the date column, which is in a list for this one
+  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
+  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
+  mutate(date_tested = ymd(date_column))  %>%
+  select(-Date, -date_column)
+
+## Stil missing 1090 video names as of 10pm on 2/10/25
+sum(is.na(release_1_session_durations$Upload_fname))
+
+```
+
+## Ego-single child, release 1
+```{r}
+# release 1
+luna_release_1_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Luna_V1_Corrected') %>%
+  filter(Vid_In_Storage_Bucket=="Y") %>%
+  select(subject_id, Upload_fname, Date, `Blackout Portions`, Duration) %>%
+  rename(exclude = `Blackout Portions`) %>% # tag when there was anything to be excluded
+  left_join(families_short, by=c('subject_id')) %>%
+  mutate(cohort = 'ego_single') %>%
+  mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  # Fix the date column, which is in a list for this one
+  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
+  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
+  mutate(date_tested = ymd(date_column))   %>%
+  select(-Date, -date_column)
+
+## Not missing luna names
+sum(is.na(luna_release_1_session_durations$Upload_fname))
+
+```
+
+```{r}
+# release 2 luna
+luna_release_2_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/1mAti9dBNUqgNQQIIsnPb5Hu59ovKCUh9LSYOcQvzt2U/edit?gid=1883822719#gid=1883822719', sheet='Luna_Round_2_Ongoing') %>%
+  filter(Status=="Uploaded") %>%
+  select(subject_id, Upload_fname, Date, `Delete?`, Duration) %>%
+  rename(exclude = `Delete?`) %>% # tag when there was anything to be excluded
+  left_join(families_short, by=c('subject_id')) %>%
+  mutate(cohort = 'ego_single') %>%
+  mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
+  # Fix the date column, which is in a list for this one
+  mutate(date_column = ymd(Date)) %>%
+  mutate(date_tested = ymd(date_column))  %>%
+  select(-Date, -date_column)
+
+sum(is.na(luna_release_2_session_durations$Upload_fname))
+
+
+```
+
+
+## Join all together
+```{r}
+all_sessions <- release_1_session_durations %>% 
+  full_join(ongoing_session_durations) %>%
+  full_join(luna_release_1_session_durations) %>%
+  full_join(luna_release_2_session_durations) %>%
+  # note actual birthdays are in a different date format, but this works here
+  mutate(age_in_days_during_video = as.numeric(difftime(ymd(date_tested), ymd(birthdate), units='days'))) %>%
+  select(-birthdate) 
+```
+
+
+# Join metadata with filenames from GCP pulls
+```{R}
+to_join <- all_sessions %>%
+  arrange(video_name) %>%
+  mutate(filename = video_name) 
+```
+
+Here's the file list from Khais' pull on GCP, try to join
+```{R} 
+joined_release_2 <- read_csv(file = here::here('data/included_videos.csv'))   %>%
+  left_join(to_join, by=c('filename'))
+```
+
+```{r}
+merged <- joined_release_2 %>%
+  filter(!is.na(subject_id)) 
+```
+
+
+```{r}
+no_merge <- joined_release_2 %>%
+  filter(is.na(subject_id))  %>%
+  select(filename) 
+
+# write_csv(no_merge, file=here::here('data/no_merge_vids.csv'))
+```
+
+How far did we get? We got `r length(unique(merged$filename))` videos out of the `r length(unique(joined_release_2$filename))` we were hoping to match. We are still missing information about `r  length(unique(no_merge$filename))` files. We are still missing filenames from release 1 for `r sum(is.na(release_1_session_durations$Upload_fname))` files.
+
+
+```{r}
+ego_single_child <- joined_release_2 %>%
+  # filter(is.na(subject_id)) %>%
+  mutate(luna = str_detect(filename, 'LUNA')) %>%
+  filter(luna == TRUE)
+
+ego_single_child_no_merge <- joined_release_2 %>%
+  filter(is.na(subject_id)) %>%
+  mutate(luna = str_detect(filename, 'LUNA')) %>%
+  filter(luna == TRUE)
+```
+
+None of the missing files are luna files.
+
+## Make a list of the files we need to make sure not to include
+```{R}
+to_delete_release2 <- joined_release_2 %>%
+  filter(!is.na(exclude)) %>%
+  select(filename, subject_id, date_tested, Duration)
+
+# these videos were recorded but then manually deleted and are not in the release or in the raw/storage buckets
+to_delete_from_spreadhseet <- all_sessions %>%
+  filter(!is.na(exclude)) %>%
+  anti_join(to_delete_release2 %>% rename(vid_name = filename))
+
+# write_csv(to_delete_release2, file=here::here('data/to_delete_blackout_vids.csv'))
+```
