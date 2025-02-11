@@ -163,3 +163,8 @@ cython_debug/
 .DS_Store
 .Rproj.user
 babyview-dataset.Rproj
+data/merged_data_descriptives.csv
+data/no_merge_vids.csv
+data/to_delete_blackout_vids.csv
+data/to_delete_blackout_vids_post_match.csv
+demographics/rsconnect/documents/join_metadata.Rmd/rpubs.com/rpubs/Document.dcf
