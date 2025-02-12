@@ -5,10 +5,12 @@ date: "2025-02-11"
 output: html_document
 ---
 
+# Setup
 ```{r}
 library(tidyverse)
 library(here)
 library(ggthemes)
+library(knitr)
 ```
 
 ```{R}
@@ -16,24 +18,29 @@ merged = read_csv(file=here::here('data/merged_dataset_with_descriptives.csv'))
 ```
 
 
-# Duration descriptives
+#  Descriptives in text
+
+Duration by cohort
 ```{r}
 duration_statistics <- merged %>%
   group_by(cohort) %>%
   filter(!is.na(duration)) %>%
-  summarize(minutes = sum(duration)/60, hours = minutes /60, subjects = length(unique(subject_id)))
+  summarize(minutes = sum(duration)/60, hours = minutes /60, subjects = length(unique(subject_id))) %>%
+  kable()
 
 ```
 
+Duration for bv-home only
 ```{r}
 bv_home = merged %>%
   filter(cohort != 'ego-single') %>%
   filter(!is.na(duration)) %>%
-  summarize(minutes = sum(duration)/60, hours = minutes /60, subjects = length(unique(subject_id))) 
+  summarize(minutes = sum(duration)/60, hours = minutes /60, subjects = length(unique(subject_id))) %>%
+  kable()
 ```
 
 
-# Monolinguals
+Visualize data by subject, by language data
 ```{r}
 language_data <- merged %>%
   group_by(cohort, subject_id, num_lang) %>%
@@ -47,10 +54,11 @@ ggplot(language_data, aes(x=average_age, y=hours, col=average_age)) +
 ```
 
 
-# Wrangle data for plot
-Look at number of hours by each subject
-```{r}
 
+# Main plot for paper
+
+Get hours for each subject
+```{r}
 hours_by_subject <- merged %>% 
   group_by(subject_id) %>%
   summarize(num_hours = (sum(duration, na.rm=TRUE)/60)/60) %>%
@@ -58,8 +66,6 @@ hours_by_subject <- merged %>%
 
 hours_by_subject
 ```
-
-
 
 
 Calculate cumulative time spent recording by age in months during recording
@@ -72,8 +78,7 @@ main_plot_age_bin <- merged %>%
   select(subject_id, minutes_cumulative, age_in_months)
 ```
 
-
-# Main plot of age by duration, finally
+Plot by age
 ```{r}
 ggplot(main_plot_age_bin, aes(x=age_in_months, y=minutes_cumulative/60, col=subject_id)) +
   geom_point(alpha=.6, size=.5) +

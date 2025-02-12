@@ -240,7 +240,6 @@ assert_that(sum(merged$age_in_months>50)==0)
 ```
 
 
-
 ```{r}
 write_csv(merged, file=here::here('data/merged_data_descriptives.csv'))
 ```

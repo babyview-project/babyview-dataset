@@ -14,17 +14,33 @@ library(stringr)
 library(magrittr)
 library(forcats)
 library(dplyr)
+library(here)
 
 ```
 ```{r global_options, include=FALSE}
 options(scipen=999)
 ```
 
+
+
+
+```{R}
+subjects_with_data = read_csv(file=here::here('data/merged_dataset_with_descriptives.csv')) %>%
+  distinct(subject_id)
+```
+
+
+
 ```{r}
+demographics <- readRDS(file=here::here("data/bv_ccn_demographics.rds"))
+full_demographics <- read.csv(file=here::here("data/bv_ccn_demo.csv"))
 
-demographics <- readRDS("bv_ccn_demographics.rds")
-full_demographics <- read.csv("bv_ccn_demo.csv")
+full_demographics <- full_demographics %>%
+  filter(sid %in% subjects_with_data$subject_id)
 
+```
+
+```{r}
 min_age <- min(full_demographics$onboard_age) 
 max_age <- max(full_demographics$onboard_age)
 avg_age <- mean(full_demographics$onboard_age)*12
