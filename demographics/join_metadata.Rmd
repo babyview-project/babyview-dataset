@@ -20,19 +20,20 @@ IDENTIFIABLE (!) with birthdate if you get it from the source; that bit is comme
 
 Here we are using a deidentified version to check rough ages
 ```{r}
-# families = read_csv(file=here::here('data/demographics/demographics_2025.csv')) %>%
-  # as_tibble() %>%
-  # filter(study_name == 'BabyView') %>% # no pilots
-  # select(sid, date_birth, ethnicity, gender, num_lang, parent_ed) %>%
-  # rename(birthdate = date_birth) %>%
-  # rename(subject_id = sid) %>%
-  # filter(!is.na(subject_id))
+families = read_csv(file=here::here('data/demographics_2025.csv')) %>%
+  as_tibble() %>%
+  filter(study_name == 'BabyView') %>% # no pilots
+  select(sid, date_birth, ethnicity, gender, num_lang, parent_ed) %>%
+  rename(birthdate = date_birth) %>%
+  mutate(subject_id = paste0('00',sid)) %>%
+  filter(!is.na(subject_id))
 
-# We collected data from `r length(unique(families$subject_id))`. 
+# We collected data from `r length(unique(families$subject_id))`.
 # In our sample, `r sum(families$num_lang>1)` children are exposed to more than one language.
 
-# families_short <- families %>%
-  # select(subject_id, birthdate, num_lang)
+families_short <- families %>%
+  select(subject_id, birthdate, num_lang) %>%
+  mutate(num_lang = as.numeric(num_lang)) 
 
 ```
 
@@ -47,7 +48,7 @@ Here we are using a deidentified version to check rough ages
 
 Load in deidentified info
 ```{r}
-families_short = read_csv(file=('subids_deidentified.csv'))  
+# families_short = read_csv(file=('subids_deidentified.csv'))  
 ```
 
 ## Load bv main -- ongoing 
@@ -61,7 +62,6 @@ ongoing_session_durations <- read_sheet('https://docs.google.com/spreadsheets/d/
   left_join(families_short, by=c('subject_id')) %>%
   mutate(cohort = 'ongoing')  %>%
   mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
-  
   # Fix the date column, which is in a list for this sheet but not all
   filter(map_lgl(Date, ~ !is.null(.x)))  %>%
   mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
@@ -113,12 +113,15 @@ luna_release_1_session_durations <- read_sheet('https://docs.google.com/spreadsh
   mutate(cohort = 'ego_single') %>%
   mutate(video_name = str_split_fixed(Upload_fname, '.zip',2)[,1]) %>%
   # Fix the date column, which is in a list for this one
-  mutate(date_tested = mdy(Date))   %>%
+  filter(map_lgl(Date, ~ !is.null(.x)))  %>%
+  mutate(date_column = map_chr(Date, ~ as.character(.x[1])))  %>%
+  mutate(date_tested = ymd(date_column))  %>%
   mutate(Duration = as.numeric(Duration)) %>%  # weird in `test` sheet
   select(-Date)
 
 ## Not missing luna names
 sum(is.na(luna_release_1_session_durations$Upload_fname))
+sum(is.na(luna_release_1_session_durations$date_tested))
 
 ```
 
@@ -168,10 +171,8 @@ all_sessions <- release_1_session_durations %>%
   full_join(ongoing_session_durations) %>%
   full_join(luna_release_1_session_durations) %>%
   full_join(luna_release_2_session_durations) %>%
-  full_join(bing_sessions) %>%
-  # note actual birthdays are in a different date format, but this works here
-  mutate(age_in_days_during_video = as.numeric(difftime(ymd(date_tested), ymd(birthdate), units='days'))) %>%
-  select(-birthdate)
+  full_join(bing_sessions) 
+  
 ```
 
 
@@ -194,14 +195,52 @@ joined_release_2 <- read_csv(file = here::here('data/included_videos.csv'))   %>
   left_join(to_join)
 ```
 
+Get date information from week range
 ```{r}
-merged <- joined_release_2 %>%
+wrong_dates <- joined_release_2 %>%
+  filter(date_tested < ymd("2019-01-01")) %>%
+  mutate(date_tested = NA)
+
+wrong_dates_2 <- joined_release_2 %>%
+  filter(date_tested > ymd("2027-01-01")) %>%
+  mutate(date_tested = NA)
+
+to_fix <- joined_release_2  %>%
+  filter(cohort != 'ego-singlechild') %>%
+  filter(is.na(date_tested)) %>%
+  full_join(wrong_dates_2) %>%
+  full_join(wrong_dates) %>%
+  mutate(date_range_inferred = str_split_fixed(filename, '_', 5)[,3]) %>%
+  mutate(date_inferred = str_split_fixed(date_range_inferred,'-',2)[,1]) %>%
+  mutate(date_inferred = mdy(date_inferred)) %>%
+  mutate(date_tested = coalesce(date_tested,date_inferred)) %>%
+  select(-date_inferred, -date_range_inferred) 
+
+
+with_new_dates <-  joined_release_2 %>%
+  filter(!filename %in% to_fix$filename) %>%
+  full_join(to_fix) %>%
+  mutate(age_in_days_during_video = as.numeric(difftime(ymd(date_tested), mdy(birthdate), units='days'))) %>%
+  select(-birthdate)
+
+```
+
+```{r}
+merged <- with_new_dates %>%
   filter(!is.na(subject_id))%>%
   filter(is.na(exclude)) %>%
-  mutate(age_in_months = age_in_days_during_video/30.1) %>%
+  mutate(age_in_months = age_in_days_during_video/30.44) %>%
   rename(duration = Duration) %>%
   distinct(filename, subject_id, video_id, duration, num_lang, cohort, video_name, filename, age_in_months, date_tested)
+
+
+library(assertthat)
+assert_that(sum(merged$age_in_months<0)==0)
+assert_that(sum(merged$age_in_months>50)==0)
 ```
+
+
+
 ```{r}
 write_csv(merged, file=here::here('data/merged_data_descriptives.csv'))
 ```
@@ -267,7 +306,7 @@ sampled_release_1 <- read_csv(file=here::here('data/to_sample_for_whisper_may202
   mutate(subject_id = str_split_fixed(filename, '_',4)[,1]) %>%
   mutate(video_id = str_split_fixed(filename, '_',4)[,2]) %>%
   rename(release_1_filename = filename) %>%
-  left_join(joined_release_2, by=c('subject_id','video_id'))
+  left_join(merged, by=c('subject_id','video_id'))
 ```
 
 There are 19 videos that we can't match, but that's not too bad in the scheme of things.
@@ -294,11 +333,11 @@ release_1_whisper_by_vid <- sampled_release_1 %>%
 ```{R}
 # Summarize data to count unique filenames per subject and age bin
 plot_data <- release_1_whisper_by_vid %>%
-  group_by(subject_id, age_in_days_during_video) %>%
+  group_by(subject_id, age_in_months) %>%
   summarise(unique_filenames = n_distinct(filename), .groups = "drop")
 
 # Create the plot
-ggplot(plot_data, aes(x = age_in_days_during_video / 30.1, y = unique_filenames, col = subject_id)) +
+ggplot(plot_data, aes(x = age_in_months, y = unique_filenames, col = subject_id)) +
   geom_col() +  # Use geom_col() instead of geom_bar(stat="identity")
   labs(x = "Age in Months", y = "Unique Filenames", title = "Unique Videos per Age") +
   theme_minimal()
@@ -307,19 +346,18 @@ ggplot(plot_data, aes(x = age_in_days_during_video / 30.1, y = unique_filenames,
 ## Get videos to annotate
 And then save out the csv
 ```{R}
- to_sample <- joined_release_2 %>%
-  filter(is.na(exclude)) %>%
-   filter(Duration>(3*60)) %>% # only videos 3 mins or longer
+ to_sample <- merged %>%
+  filter(duration>(3*60)) %>% # only videos 3 mins or longer
   filter(cohort!="ego_single") %>% # not luna
   filter(num_lang==1) %>% # monolingual
   filter(!subject_id %in% release_1_whisper$subject_id) %>% # haven't sampled before
    group_by(subject_id) %>%
-   arrange(age_in_days_during_video) %>%
+   arrange(age_in_months) %>%
    mutate(vid_index = row_number()) %>%
    filter(vid_index%%6==0) %>%
-   mutate(start_time = Duration/2) %>%
+   mutate(start_time = duration/2) %>%
    mutate(end_time = start_time + 30) %>%
-   arrange(subject_id, age_in_days_during_video)
+   arrange(subject_id, age_in_months)
 
 write_csv(to_sample, file=here::here('data/to_sample_for_whisper_release2.csv'))
 ```

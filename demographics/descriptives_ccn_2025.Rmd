@@ -1,0 +1,90 @@
+---
+title: "descriptives_ccn_2025"
+author: "Bria Long"
+date: "2025-02-11"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(ggthemes)
+```
+
+```{R}
+merged = read_csv(file=here::here('data/merged_dataset_with_descriptives.csv'))
+```
+
+
+# Duration descriptives
+```{r}
+duration_statistics <- merged %>%
+  group_by(cohort) %>%
+  filter(!is.na(duration)) %>%
+  summarize(minutes = sum(duration)/60, hours = minutes /60, subjects = length(unique(subject_id)))
+
+```
+
+```{r}
+bv_home = merged %>%
+  filter(cohort != 'ego-single') %>%
+  filter(!is.na(duration)) %>%
+  summarize(minutes = sum(duration)/60, hours = minutes /60, subjects = length(unique(subject_id))) 
+```
+
+
+# Monolinguals
+```{r}
+language_data <- merged %>%
+  group_by(cohort, subject_id, num_lang) %>%
+  summarize(subjects = length(unique(subject_id)), minutes = sum(duration)/60, hours = minutes/60, average_age = mean(age_in_months)) 
+```
+```{r}
+ggplot(language_data, aes(x=average_age, y=hours, col=average_age)) +
+  geom_point() +
+  facet_grid(~num_lang) +
+  theme_few()
+```
+
+
+# Wrangle data for plot
+Look at number of hours by each subject
+```{r}
+
+hours_by_subject <- merged %>% 
+  group_by(subject_id) %>%
+  summarize(num_hours = (sum(duration, na.rm=TRUE)/60)/60) %>%
+  arrange(-num_hours) 
+
+hours_by_subject
+```
+
+
+
+
+Calculate cumulative time spent recording by age in months during recording
+```{r}
+main_plot_age_bin <- merged %>%
+  mutate(duration_in_minutes = duration/60) %>%
+  group_by(subject_id, cohort) %>%
+  arrange(age_in_months) %>%
+  mutate(minutes_cumulative = cumsum(duration_in_minutes)) %>%
+  select(subject_id, minutes_cumulative, age_in_months)
+```
+
+
+# Main plot of age by duration, finally
+```{r}
+ggplot(main_plot_age_bin, aes(x=age_in_months, y=minutes_cumulative/60, col=subject_id)) +
+  geom_point(alpha=.6, size=.5) +
+  geom_point(data = main_plot_age_bin %>% filter(cohort=='ego_single'), alpha=.6, size=.5, color='darkgrey') +
+  theme(legend.position='right') +
+  ylab('Cumulative hours of videos') +
+  xlab('Age (in months) during recording')  +
+  theme(legend.position = 'none') +
+  xlim(0,36) 
+  # facet_wrap(~cohort)
+
+ggsave('age_by_duration.pdf', width=4, units='in')
+```
+
