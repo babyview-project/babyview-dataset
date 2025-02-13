@@ -260,6 +260,16 @@ no_merge <- joined_release_2 %>%
 write_csv(no_merge, file=here::here('data/no_merge_vids.csv'))
 ```
 
+```{r}
+
+duplicates = c('00320001_GX010058_11.04.2024-11.10.2024_11.09.2024-5:32pm',
+'00320001_GX020058_11.04.2024-11.10.2024_11.09.2024-5:32pm',
+'00240001_GX010053_04.29.2024-05.05.2024_05.05.2024-NA',
+'00370002_GX010087_08.26.2024-09.01.2024_08.31.2024-8:57am',
+'00510002_GX010013_09.30.2024-10.06.2024_09.30.2024-6:32am',
+'00590001_GX010036_09.16.2024-09.22.2024_09.17.2024-NA')
+```
+
 We have `r length(unique(merged$filename))` matched videos out of the `r length(unique(joined_release_2$filename))` that were in the pull of the dataset. We are still missing information about `r  length(unique(no_merge$filename))` files,  we excluded `r sum(!is.na(joined_release_2$exclude))` videos that had sensitive information. We had `r length(joined_release_2$filename)` files and with `r length(unique(joined_release_2$filename))` unique filenames, which means there were a few accidental duplicate videos.  
 
 ## Save
@@ -280,7 +290,6 @@ to_delete_release2 <- joined_release_2 %>%
 to_delete_from_spreadhseet <- all_sessions %>%
   filter(!is.na(exclude)) %>%
   anti_join(to_delete_release2 %>% rename(vid_name = filename))
-
 
 # these were given to the team before merging was done,
 blackout_first_round = read_csv(file=here::here('data/to_delete_blackout_vids.csv')) %>%
@@ -308,10 +317,9 @@ sampled_release_1 <- read_csv(file=here::here('data/to_sample_for_whisper_may202
   left_join(merged, by=c('subject_id','video_id'))
 ```
 
-There are 19 videos that we can't match, but that's not too bad in the scheme of things.
+There are 19 videos that we can't match, but that's not too bad in the scheme of things. Some were luna, some we matched manually to the may 2024 filenames, and two we couldn't figure out.
 ```{r}
-no_merge_whisper <- sampled_release_1 %>%
-  filter(is.na(filename))
+manually_merged_whisper = read_csv(file=here::here('data/manually_merged_whisper.csv'))
 ```
 
 # Whisper video sampling
@@ -325,9 +333,14 @@ release_1_whisper <- sampled_release_1 %>%
 
 release_1_whisper_by_vid <- sampled_release_1 %>%
   filter(!is.na(filename)) %>% # 19 couldn't match
+  full_join(manually_merged_whisper) %>%
   filter(num_lang==1) 
+
 ```
 
+```{r}
+write_csv(sampled_release_1, file=here::here('data/whisper_matched_release_1.csv'))
+```
 
 ```{R}
 # Summarize data to count unique filenames per subject and age bin
