@@ -1,0 +1,9 @@
+X,sid,hispanic,ethnicity,gender,num_lang,parent_ed,premie,onboard_age,geo,income,house_adults,house_children
+1,1,no,asian,male,2,6,no,0.676249144421629,CA,NA,2,2
+2,Bria_Long,no,white,female,2,6,no,3.07734428473648,CA,250000,2,2
+20,00410001,yes,white,female,1,4,no,0.791238877481177,CA,95000,1,1
+30,00370003,no,asian,male,2,6,no,0.714579055441478,CA,250000,2,2
+33,01010001,yes,white,male,1,6,no,1.927446954141,ST,200000,2,1
+37,00390002,no,asian,female,1,6,no,0.752908966461328,CA,500000,3,1
+38,00350002,no,white,female,1,4,no,0.670773442847365,CA,100000,2,2
+39,00270002,yes,mixed,male,2,6,no,0.514715947980835,CA,130000,2,2

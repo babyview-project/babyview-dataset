@@ -35,8 +35,13 @@ subjects_with_data = read_csv(file=here::here('data/merged_dataset_with_descript
 demographics <- readRDS(file=here::here("data/bv_ccn_demographics.rds"))
 full_demographics <- read.csv(file=here::here("data/bv_ccn_demo.csv"))
 
-full_demographics <- full_demographics %>%
+not_in_dataset <- full_demographics %>%
+  filter(!sid %in% subjects_with_data$subject_id)
+
+these_demographics <- full_demographics %>%
   filter(sid %in% subjects_with_data$subject_id)
+
+write_csv(not_in_dataset, "data/not_in_dataset.csv")
 
 ```
 
