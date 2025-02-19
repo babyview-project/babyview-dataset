@@ -19,13 +19,19 @@ library(tidyverse)
 
 full_transcripts <- read.csv("./ccn_annotated_transcripts.csv") 
 
+# filtering transcripts by speaker for 6-18 month olds
+
 young_adult_transcripts <- full_transcripts %>% filter(annotate_speaker %in% c("FEM","MAL"),age <=18)
 young_child_transcripts <- full_transcripts %>% filter(annotate_speaker == "CHI",age <=18)
 young_kchild_transcripts <- full_transcripts %>% filter(annotate_speaker == "KCHI",age <=18)
 
+# filtering transcripts by speaker for 18+ month olds
+
 old_adult_transcripts <- full_transcripts %>% filter(annotate_speaker %in% c("FEM","MAL"),age > 18)
 old_child_transcripts <- full_transcripts %>% filter(annotate_speaker == "CHI",age > 18)
 old_kchild_transcripts <- full_transcripts %>% filter(annotate_speaker == "KCHI",age > 18)
+
+# total and true positive values for the full sample of annotations
 
 full <- full_transcripts %>% filter(!is.na(annotate_speaker)) %>% nrow()
 full_tp <- full_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
@@ -34,12 +40,16 @@ na_tp <- full_transcripts %>% filter(is.na(annotate_speaker), is.na(speaker)) %>
 
 full_acc <- (full_tp + na_tp) / (full + na)
 
+# true positive, actual, and predicted values for adult speakers of 6-18 month olds
+
 ya_tp <- young_adult_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 ya_actual <- young_adult_transcripts %>% nrow()
 ya_predicted <- full_transcripts %>% filter(speaker %in% c("FEM","MAL"),age <= 18) %>% nrow()
 
 ya_recall <- ya_tp/ya_predicted
 ya_precision <- ya_tp/ya_actual
+
+# true positive, actual, and predicted values for other child speakers of 6-18 month olds
 
 yc_tp <- young_child_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 yc_actual <- young_child_transcripts %>% nrow()
@@ -48,12 +58,16 @@ yc_predicted <- full_transcripts %>% filter(speaker == "CHI",age <= 18) %>% nrow
 yc_recall <- yc_tp/yc_predicted
 yc_precision <- yc_tp/yc_actual
 
+# true positive, actual, and predicted values for key children 6-18 months old
+
 yk_tp <- young_kchild_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 yk_actual <- young_kchild_transcripts %>% nrow()
 yk_predicted <- full_transcripts %>% filter(speaker == "KCHI",age <= 18) %>% nrow()
 
 yk_recall <- yk_tp/yk_predicted
 yk_precision <- yk_tp/yk_actual
+
+# true positive, actual, and predicted values for adult speakers of 18+ month olds
 
 oa_tp <- old_adult_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 oa_actual <- old_adult_transcripts %>% nrow()
@@ -62,12 +76,16 @@ oa_predicted <- full_transcripts %>% filter(speaker %in% c("FEM","MAL"),age > 18
 oa_recall <- oa_tp/oa_predicted
 oa_precision <- oa_tp/oa_actual
 
+# true positive, actual, and predicted values for other child speakers of 18+ month olds
+
 oc_tp <- old_child_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 oc_actual <- old_child_transcripts %>% nrow()
 oc_predicted <- full_transcripts %>% filter(speaker == "CHI",age > 18) %>% nrow
 
 oc_recall <- oc_tp/oc_predicted
 oc_precision <- oc_tp/oc_actual
+
+# true positive, actual, and predicted values for key children 18+ months old
 
 ok_tp <- old_kchild_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 ok_actual <- old_kchild_transcripts %>% nrow()
