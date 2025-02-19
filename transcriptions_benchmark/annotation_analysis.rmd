@@ -17,7 +17,7 @@ library(tidyverse)
 
 ```{r}
 
-full_transcripts <- read.csv("./ccn_annotated_transcripts.csv")
+full_transcripts <- read.csv("./ccn_annotated_transcripts.csv") 
 
 young_adult_transcripts <- full_transcripts %>% filter(annotate_speaker %in% c("FEM","MAL"),age <=18)
 young_child_transcripts <- full_transcripts %>% filter(annotate_speaker == "CHI",age <=18)
@@ -27,10 +27,12 @@ old_adult_transcripts <- full_transcripts %>% filter(annotate_speaker %in% c("FE
 old_child_transcripts <- full_transcripts %>% filter(annotate_speaker == "CHI",age > 18)
 old_kchild_transcripts <- full_transcripts %>% filter(annotate_speaker == "KCHI",age > 18)
 
-full <- full_transcripts %>% nrow()
+full <- full_transcripts %>% filter(!is.na(annotate_speaker)) %>% nrow()
 full_tp <- full_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+na <- full_transcripts %>% filter(is.na(annotate_speaker)) %>% nrow()
+na_tp <- full_transcripts %>% filter(is.na(annotate_speaker), is.na(speaker)) %>% nrow()
 
-full_acc <- full_tp/full
+full_acc <- (full_tp + na_tp) / (full + na)
 
 ya_tp <- young_adult_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
 ya_actual <- young_adult_transcripts %>% nrow()
