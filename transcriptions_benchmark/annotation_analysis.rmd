@@ -1,0 +1,103 @@
+---
+title: "annotation analysis"
+output: html_document
+date: "2025-2-19"
+---
+
+```{r}
+library(readr)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(langcog)
+library(stringr)
+library(tidyverse)
+```
+
+```{r}
+
+full_transcripts <- read.csv("./ccn_annotated_transcripts.csv")
+
+young_adult_transcripts <- full_transcripts %>% filter(annotate_speaker %in% c("FEM","MAL"),age <=18)
+young_child_transcripts <- full_transcripts %>% filter(annotate_speaker == "CHI",age <=18)
+young_kchild_transcripts <- full_transcripts %>% filter(annotate_speaker == "KCHI",age <=18)
+
+old_adult_transcripts <- full_transcripts %>% filter(annotate_speaker %in% c("FEM","MAL"),age > 18)
+old_child_transcripts <- full_transcripts %>% filter(annotate_speaker == "CHI",age > 18)
+old_kchild_transcripts <- full_transcripts %>% filter(annotate_speaker == "KCHI",age > 18)
+
+full <- full_transcripts %>% nrow()
+full_tp <- full_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+
+full_acc <- full_tp/full
+
+ya_tp <- young_adult_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+ya_actual <- young_adult_transcripts %>% nrow()
+ya_predicted <- full_transcripts %>% filter(speaker %in% c("FEM","MAL"),age <= 18) %>% nrow()
+
+ya_recall <- ya_tp/ya_predicted
+ya_precision <- ya_tp/ya_actual
+
+yc_tp <- young_child_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+yc_actual <- young_child_transcripts %>% nrow()
+yc_predicted <- full_transcripts %>% filter(speaker == "CHI",age <= 18) %>% nrow
+
+yc_recall <- yc_tp/yc_predicted
+yc_precision <- yc_tp/yc_actual
+
+yk_tp <- young_kchild_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+yk_actual <- young_kchild_transcripts %>% nrow()
+yk_predicted <- full_transcripts %>% filter(speaker == "KCHI",age <= 18) %>% nrow()
+
+yk_recall <- yk_tp/yk_predicted
+yk_precision <- yk_tp/yk_actual
+
+oa_tp <- old_adult_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+oa_actual <- old_adult_transcripts %>% nrow()
+oa_predicted <- full_transcripts %>% filter(speaker %in% c("FEM","MAL"),age > 18) %>% nrow()
+
+oa_recall <- oa_tp/oa_predicted
+oa_precision <- oa_tp/oa_actual
+
+oc_tp <- old_child_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+oc_actual <- old_child_transcripts %>% nrow()
+oc_predicted <- full_transcripts %>% filter(speaker == "CHI",age > 18) %>% nrow
+
+oc_recall <- oc_tp/oc_predicted
+oc_precision <- oc_tp/oc_actual
+
+ok_tp <- old_kchild_transcripts %>% filter(speaker == annotate_speaker) %>% nrow()
+ok_actual <- old_kchild_transcripts %>% nrow()
+ok_predicted <- full_transcripts %>% filter(speaker == "KCHI",age > 18) %>% nrow()
+
+ok_recall <- ok_tp/ok_predicted
+ok_precision <- ok_tp/ok_actual
+
+```
+
+Full Accuracy: `r full_acc`
+
+6-18 Adult Precision: `r ya_precision`
+
+6-18 Adult Recall: `r ya_recall`
+
+6-18 Child Precision: `r yc_precision`
+
+6-18 Child Recall: `r yc_recall`
+
+6-18 Key Child Precision: `r yk_precision`
+
+6-18 Key Child Recall: `r yk_recall`
+
+18+ Adult Precision: `r oa_precision`
+
+18+ Adult Recall: `r oa_recall`
+
+18+ Child Precision: `r oc_precision`
+
+18+ Child Recall: `r oc_recall`
+
+18+ Key Child Precision: `r ok_precision`
+
+18+ Key Child Recall: `r ok_recall`
