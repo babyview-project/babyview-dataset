@@ -1,3 +1,2 @@
 # babyview-dataset
-
-Code for demographics, main model inference, and training to accompany CCN 2025 paper submission
+Code for main model inference and training to accompany of our paper describing the dataset and our initial pulls.
