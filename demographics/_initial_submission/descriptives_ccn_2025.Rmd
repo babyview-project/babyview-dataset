@@ -52,7 +52,12 @@ ggplot(language_data, aes(x=average_age, y=hours, col=average_age)) +
   facet_grid(~num_lang) +
   theme_few()
 ```
-
+```{r}
+monolinguals <- merged %>%
+  filter(num_lang==1) %>%
+  # group_by(cohort, subject_id, num_lang) %>%
+  summarize(subjects = length(unique(subject_id)), minutes = sum(duration)/60, hours = minutes/60, average_age = mean(age_in_months)) 
+```
 
 
 # Main plot for paper
@@ -86,10 +91,10 @@ ggplot(main_plot_age_bin, aes(x=age_in_months, y=minutes_cumulative/60, col=subj
   theme(legend.position='right') +
   ylab('Cumulative hours of videos') +
   xlab('Age (in months) during recording')  +
-  theme(legend.position = 'none') +
-  xlim(0,36) 
+  theme(legend.position = 'none') 
+  # xlim(5,36) 
   # facet_wrap(~cohort)
 
-ggsave('age_by_duration.pdf', width=4, units='in')
+ggsave('age_by_duration.pdf', width=5.5, units='in')
 ```
 

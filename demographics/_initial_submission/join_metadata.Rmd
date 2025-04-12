@@ -339,7 +339,7 @@ release_1_whisper_by_vid <- sampled_release_1 %>%
 ```
 
 ```{r}
-write_csv(sampled_release_1, file=here::here('data/whisper_matched_release_1.csv'))
+write_csv(release_1_whisper_by_vid, file=here::here('data/whisper_matched_release_1.csv'))
 ```
 
 ```{R}

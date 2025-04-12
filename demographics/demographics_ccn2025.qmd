@@ -1,0 +1,103 @@
+---
+title: "BabyView Developmental Analysis"
+format: html
+---
+
+```{r}
+# remotes::install_github("babyview-project/babyviewr")
+library(tidyverse)
+library(babyviewr)
+library(lubridate)
+library(ggthemes)
+library(kableExtra)
+library(here)
+```
+
+```{r}
+# Load the data
+participants <- babyviewr::get_participant_data(include_demographics = TRUE)
+recordings <- babyviewr::get_main_recording_data(include_luna = TRUE)
+```
+
+```{r}
+d <- left_join(recordings, 
+                        participants |>
+                        select(-dataset), by = "subject_id") |>
+  group_by(subject_id) |>
+  arrange(date_time) |>
+  mutate(age = date(date_time) - date_birth_rounded, 
+         cumulative_hrs = cumsum(duration_hrs), 
+         age_mo = floor(as.numeric(age)/30.3)) %>%
+  mutate(no_blackout = map_lgl(blackout_region, is.null)) %>%
+  filter(!is.na(duration_hrs)) %>%
+  filter(duration_hrs>0)
+
+```
+
+```{r}
+blackout_videos <- d %>%
+  filter(no_blackout==FALSE) 
+
+d <- d %>%
+  filter(no_blackout==TRUE) 
+```
+There were `r length(blackout_videos$unique_video_id)` videos with portions to be redacted that were not included in this draw of the dataset.
+
+
+```{r}
+ccn_release <- read_csv(file = here::here('data/included_videos_superseded_gcp_name_feb25.csv'), col_names=FALSE)   %>%
+  as_tibble() %>%
+  rename(superseded_gcp_name_feb25 = X1) %>%
+  left_join(d) %>%
+  filter(!is.na(dataset)) # non-matching videos, ~56 videos
+```
+
+# How many videos do we have?
+```{r}
+length(unique(ccn_release$superseded_gcp_name_feb25))
+```
+
+
+```{r}
+duration_statistics <- ccn_release %>%
+  group_by(dataset) %>%
+  filter(!is.na(duration)) %>%
+  filter(!is.na(dataset)) %>%
+  summarize(hours = sum(duration_hrs),  subjects = length(unique(subject_id)))
+```
+
+```{r}
+ggplot(data = ccn_release %>% filter(dataset == 'BV-main'), 
+       aes(x = age/30.3, y = cumulative_hrs, col = subject_id)) +
+  geom_point(alpha= .2, size=.5) + 
+  geom_point(data = filter(d, dataset == "Luna"), col = "dark grey", size=.5, alpha=.2) +
+  scale_color_discrete(guide = FALSE) + 
+  # theme_minimal() + 
+  xlab("Age in months") + 
+  ylab("Cumulative hours of data recorded") +
+  theme(aspect.ratio=1)
+
+ggsave(file='duration_statistics_ccn_2025.pdf', width=3, height=3, units='in')
+```
+
+```{r}
+age_density <- d |>
+  group_by(age_mo, dataset) |>
+  summarise(n = n(), 
+            n_participants = n_distinct(subject_id), 
+            n_hours = sum(duration_hrs))
+
+ggplot(age_density, aes(x = age_mo, y = n_hours, fill = dataset)) + 
+  geom_bar(stat = "identity") + 
+  xlab("Age (months)") + 
+  ylab("Total hours of data") + 
+  scale_fill_solarized() +
+  theme_few()
+```
+
+
+```{r}
+language_data <- ccn_release %>%
+  group_by(dataset,  num_lang) %>%
+  summarize(subjects = length(unique(subject_id)), minutes = sum(duration_hrs), average_age = mean(age_mo)) 
+```
