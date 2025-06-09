@@ -80,6 +80,11 @@ ggplot(data = ccn_release %>% filter(dataset == 'BV-main'),
 ggsave(file='duration_statistics_ccn_2025.pdf', width=3, height=3, units='in')
 ```
 
+
+```{R}
+write_csv(ccn_release, file=here::here('data/ccn_release_2025.csv'))
+```
+
 ```{r}
 age_density <- d |>
   group_by(age_mo, dataset) |>
